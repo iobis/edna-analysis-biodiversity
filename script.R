@@ -1,12 +1,14 @@
 ### eDNA workshop - Olhao, Jan 2024 - ANC
 
+### Data files
+### ----------------------------------
 # https://github.com/iobis
 # https://docs.google.com/document/d/18dQ-ywtbvS2_wa_kQ9PwB_bTAyCYyXFvK1JgujNa2Wo/edit
 
 setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
 
 ### Read in the eDNA data
-### ----------------------------------
+
 # https://github.com/iobis/edna-results?tab=readme-ov-file
 
 library(dplyr)
@@ -29,10 +31,10 @@ occurrence <- map(occurrence_files, read.table, sep = "\t", quote = "", header =
   ) %>%
   left_join(dna, by = "occurrenceID")
 
-### ----------------------------------
+### ---
 
-### Get the Marine World Heritage site shapes
-### ----------------------------------
+## Get the Marine World Heritage site shapes
+
 # here is the map: https://samples.ednaexpeditions.org/#/
 
 # download the .gpkg file from 
@@ -307,7 +309,7 @@ sampled_sites4$group[sampled_sites4$phylum %in% c("Bacillariophyta","Bigyra","Ce
 sampled_sites4$group[sampled_sites4$phylum %in% c("Bryophyta","Charophyta","Chlorophyta","Prasinodermatophyta","Rhodophyta","Tracheophyta")] <- "Plantae"
 
 sampled_sites4$group[sampled_sites4$class %in% c("Chondrostei", "Holostei", "Teleostei", "Cladistii", "Coelacanthi", "Elasmobranchii", "Holocephali", "Myxini", "Petromyzonti")] <- "Fishes"
-sampled_sites4$group[sampled_sites4$class %in% c("Aves","Mammalia","Crocodylia","Amphibia","Ascidiacea","Thaliacea","Leptocardii","Appendicularia") | sampled_sites4$order %in% c("Testudines", "Squamata")] <- "other Vertebrates"
+sampled_sites4$group[sampled_sites4$class %in% c("Aves","Mammalia","Crocodylia","Amphibia","Ascidiacea","Thaliacea","Leptocardii","Appendicularia") | sampled_sites4$order %in% c("Testudines", "Squamata")] <- "Other Vertebrates"
 
 
 sampled_sites4$group<-as.factor(sampled_sites4$group)
@@ -317,29 +319,7 @@ write.csv(sampled_sites4, file = "sampled_sites4.csv", row.names = F)
 
 ### ----------------------------------
 
-# sqlite database Pieter
-### ----------------------------------
-library(RSQLite)
-
-con <- dbConnect(SQLite(), dbname = "database.sqlite")
-
-dbListTables(con) # list of tables in the sqlite
-
-h3 <- dbReadTable(con, "h3")
-mwhs_cells <- dbReadTable(con, "mwhs_cells")
-occurrence <- dbReadTable(con, "occurrence")
-realms_cells <- dbReadTable(con, "realms_cells")
-redlist <- dbReadTable(con, "redlist")
-site_cells <- dbReadTable(con, "site_cells")
-sites <- dbReadTable(con, "sites")
-species <- dbReadTable(con, "species")
-
-# Close the database connection when done
-dbDisconnect(con)
-
-### ----------------------------------
-
-###Data analyses
+### Data analyses ###
 
 ### Species Richness
 ### ----------------------------------
@@ -395,7 +375,13 @@ sampled_sites4$site <- factor(
     "Peninsula Valdés",
     "French Austral Lands and Seas"))
 
-### species by site and group
+# order groups
+ordered_groups <- c("Plantae", "Chromista", "Other Vertebrates", "Fishes", "Other Invertebrates", "Mollusca", "Echinodermata", "Cnidaria", "Arthropoda", "Annelida")
+
+sampled_sites4$group <- factor(
+  sampled_sites4$group,
+  levels = ordered_groups,
+  labels = c("Plantae", "Chromista", "Other Vertebrates", "Fishes", "Other Invertebrates", "Mollusca", "Echinodermata", "Cnidaria", "Arthropoda", "Annelida"))
 
 # all
 library(dplyr)
@@ -407,7 +393,7 @@ species_counts <- sampled_sites4 %>%
   summarise(species_richness = n_distinct(species))
 
 my_theme=theme_bw()+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_blank(),axis.line.x = element_line(linewidth = 1),axis.line.y = element_line(linewidth = 1),axis.title = element_text(size = 12),axis.text = element_text(size = 12))
-my_colors <- c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf")
+my_colors <- c("#2ca02c", "#7f7f7f",  "#1f77b4", "#17becf", "#d62728", "#8c564b", "#ff7f0e", "#9467bd", "#e377c2", "#bcbd22")
 
 ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = group)) +
   geom_bar(stat = "identity", position = "stack") +
@@ -416,62 +402,67 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = group
   scale_y_continuous(
     breaks = seq(0, 8000, by = 2000),
     labels = seq(0, 8000, by = 2000)) +
-  scale_fill_manual(values = my_colors) +  # Set custom colors
-  my_theme + 
-  ggtitle("a) All")
-#barplot1a
+  scale_fill_manual(values = my_colors) +
+  my_theme + ggtitle("a) All")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_1a (1200x500)
 
 #OBIS/GBIF
 subset <- subset(sampled_sites4, (source_obis == TRUE | source_gbif == TRUE))
 species_counts <- subset %>%
-  group_by(site, phylum) %>%
+  group_by(site, group) %>%
   summarise(species_richness = n_distinct(species))
 
-ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = phylum)) +
+ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = group)) +
   geom_bar(stat = "identity", position = "stack") +
   labs(x = "World Heritage Site", y = "Species Richness") +
   coord_flip() +
   scale_y_continuous(
     breaks = seq(0, 8000, by = 2000),
-    labels = seq(0, 8000, by = 2000)) + my_theme + ggtitle("b) OBIS/GBIF")
-#barplot1b
+    labels = seq(0, 8000, by = 2000)) +
+  scale_fill_manual(values = my_colors) +
+  my_theme + ggtitle("b) OBIS/GBIF")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_1b (1200x500)
 
 #eDNA
 subset <- subset(sampled_sites4, (source_dna == TRUE))
 species_counts <- subset %>%
-  group_by(site, phylum) %>%
+  group_by(site, group) %>%
   summarise(species_richness = n_distinct(species))
 
-ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = phylum)) +
+ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = group)) +
   geom_bar(stat = "identity", position = "stack") +
   labs(x = "World Heritage Site", y = "Species Richness") +
   coord_flip() +
   scale_y_continuous(
     breaks = seq(0, 1000, by = 200),
-    labels = seq(0, 1000, by = 200)) + my_theme + ggtitle("c) eDNA")
-#barplot1c
+    labels = seq(0, 1000, by = 200)) +
+  scale_fill_manual(values = my_colors) +
+  my_theme + ggtitle("c) eDNA")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_1c (1200x500)
 
 #unique eDNA
 subset <- subset(sampled_sites4, (source_dna == TRUE & source_obis == FALSE & source_gbif == FALSE))
 species_counts <- subset %>%
-  group_by(site, phylum) %>%
+  group_by(site, group) %>%
   summarise(species_richness = n_distinct(species))
 
-ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = phylum)) +
+ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = group)) +
   geom_bar(stat = "identity", position = "stack") +
   labs(x = "World Heritage Site", y = "Species Richness") +
   coord_flip() +
   scale_y_continuous(
     breaks = seq(0, 1000, by = 200),
-    labels = seq(0, 1000, by = 200)) + my_theme + ggtitle("d) Unique eDNA")
-#barplot1d
+    labels = seq(0, 1000, by = 200)) + 
+  scale_fill_manual(values = my_colors) +
+  my_theme + ggtitle("d) Unique eDNA")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_1d (1200x500)
 
 ### ---
 
 # Repeat for fishes
 
 setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
-fishes <- read.csv("fishes.csv", stringsAsFactors=T) # only sampled MWH sites, Kingdom Bacteria, Fungi and Protozoa excluded
+fishes <- read.csv("fishes.csv", stringsAsFactors=T)
 
 # order the sites latitudinally
 ordered_sites <- c(
@@ -521,7 +512,13 @@ fishes$site <- factor(
     "Peninsula Valdés",
     "French Austral Lands and Seas"))
 
-### species by site and class
+# order classes
+ordered_sites <- c("Teleostei","Chondrostei","Cladistii","Coelacanthi","Elasmobranchii","Holocephali","Holostei","Mixini","Petromyzonti")
+
+sampled_sites4$group <- factor(
+  sampled_sites4$group,
+  levels = ordered_sites,
+  labels = c("Teleostei","Chondrostei","Cladistii","Coelacanthi","Elasmobranchii","Holocephali","Holostei","Mixini","Petromyzonti"))
 
 # all
 library(dplyr)
@@ -533,6 +530,7 @@ species_counts <- fishes %>%
   summarise(species_richness = n_distinct(species))
 
 my_theme=theme_bw()+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_blank(),axis.line.x = element_line(linewidth = 1),axis.line.y = element_line(linewidth = 1),axis.title = element_text(size = 12),axis.text = element_text(size = 12))
+my_colors <- c("#2ca02c", "#1f77b4", "#17becf", "#d62728", "#ff7f0e", "#9467bd", "#e377c2", "#bcbd22", "#7f7f7f")
 
 ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = class)) +
   geom_bar(stat = "identity", position = "stack") +
@@ -540,8 +538,9 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = class
   coord_flip() +
   scale_y_continuous(
     breaks = seq(0, 3000, by = 500),
-    labels = seq(0, 3000, by = 500)) + my_theme + ggtitle("a) All")
-#barplot2a
+    labels = seq(0, 3000, by = 500)) + 
+  scale_fill_manual(values = my_colors) + my_theme + ggtitle("a) All")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_2a (1200x500)
 
 #OBIS/GBIF
 subset <- subset(fishes, (source_obis == TRUE | source_gbif == TRUE))
@@ -555,8 +554,9 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = class
   coord_flip() +
   scale_y_continuous(
     breaks = seq(0, 3000, by = 500),
-    labels = seq(0, 3000, by = 500)) + my_theme + ggtitle("b) OBIS/GBIF")
-#barplot2b
+    labels = seq(0, 3000, by = 500)) +
+  scale_fill_manual(values = my_colors) + my_theme + ggtitle("b) OBIS/GBIF")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_2b (1200x500)
 
 #eDNA
 subset <- subset(fishes, (source_dna == TRUE))
@@ -564,14 +564,17 @@ species_counts <- subset %>%
   group_by(site, class) %>%
   summarise(species_richness = n_distinct(species))
 
+my_colors <- c("#d62728", "#9467bd", "#bcbd22", "#7f7f7f")
+
 ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = class)) +
   geom_bar(stat = "identity", position = "stack") +
   labs(x = "World Heritage Site", y = "Species Richness") +
   coord_flip() +
   scale_y_continuous(
     breaks = seq(0, 1000, by = 200),
-    labels = seq(0, 1000, by = 200)) + my_theme + ggtitle("c) eDNA")
-#barplot2c
+    labels = seq(0, 1000, by = 200)) +
+  scale_fill_manual(values = my_colors) + my_theme + ggtitle("c) eDNA")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_2c (1200x500)
 
 #unique eDNA
 subset <- subset(fishes, (source_dna == TRUE & source_obis == FALSE & source_gbif == FALSE))
@@ -579,23 +582,25 @@ species_counts <- subset %>%
   group_by(site, class) %>%
   summarise(species_richness = n_distinct(species))
 
+my_colors <- c("#d62728", "#7f7f7f")
+
 ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = class)) +
   geom_bar(stat = "identity", position = "stack") +
   labs(x = "World Heritage Site", y = "Species Richness") +
   coord_flip() +
   scale_y_continuous(
-    breaks = seq(0, 200, by = 50),
-    labels = seq(0, 200, by = 50)) + my_theme + ggtitle("d) Unique eDNA")
-#barplot2d
+    breaks = seq(0, 200, by = 25),
+    labels = seq(0, 200, by = 25)) +
+  scale_fill_manual(values = my_colors) + my_theme + ggtitle("d) Unique eDNA")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_2d (1200x500)
 
 ### ----------------------------------
 
-
-### Species Richness
+### Threatened species
 ### ----------------------------------
 
 setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
-sampled_sites4 <- read.csv("sampled_sites4.csv", stringsAsFactors=T) # only sampled MWH sites, Kingdom Bacteria, Fungi and Protozoa excluded
+sampled_sites4 <- read.csv("sampled_sites4.csv", stringsAsFactors=T)
 
 # order the sites latitudinally
 ordered_sites <- c(
@@ -645,79 +650,95 @@ sampled_sites4$site <- factor(
     "Peninsula Valdés",
     "French Austral Lands and Seas"))
 
-### species by site and phylum
+# 10 categories: LC=least concern, NT=near threatened, VU=vulnerable, DD=data deficient, EN=endangered, CR=critically endangered, LR/cd=Lower Risk/Conservation Dependent, LR/lc=Lower Risk/Least Concern, LR/nt=Lower Risk/Near Threatened, EX=Extinct
+sampled_sites4[sampled_sites4$redlist_category == "EX",] # Coregonus oxyrinchus
+
+subsample <- sampled_sites4[sampled_sites4$redlist_category %in% c("VU", "EN", "CR"), ]
+
+ordered_sites <- c("CR", "EN", "VU")
+
+subsample$redlist_category <- factor(
+  subsample$redlist_category,
+  levels = ordered_sites,
+  labels = c("CR", "EN", "VU"))
 
 # all
-library(dplyr)
-library(ggplot2)
-library(forcats)
 
-species_counts <- sampled_sites4 %>%
-  group_by(site, phylum) %>%
+species_counts <- subsample %>%
+  group_by(site, redlist_category) %>%
   summarise(species_richness = n_distinct(species))
 
 my_theme=theme_bw()+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_blank(),axis.line.x = element_line(linewidth = 1),axis.line.y = element_line(linewidth = 1),axis.title = element_text(size = 12),axis.text = element_text(size = 12))
+my_colors <- c("#d62728", "#ff7f0e", "#bcbd22")
 
-ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = phylum)) +
+ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redlist_category)) +
   geom_bar(stat = "identity", position = "stack") +
   labs(x = "World Heritage Site", y = "Species Richness") +
   coord_flip() +
   scale_y_continuous(
-    breaks = seq(0, 8000, by = 2000),
-    labels = seq(0, 8000, by = 2000)) + my_theme + ggtitle("a) All")
-#barplot1a
+    breaks = seq(0, 200, by = 50),
+    labels = seq(0, 200, by = 50)) +
+  scale_fill_manual(values = my_colors) +
+  my_theme + ggtitle("a) All")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_3a (1200x500)
 
 #OBIS/GBIF
-subset <- subset(sampled_sites4, (source_obis == TRUE | source_gbif == TRUE))
+subset <- subset(subsample, (source_obis == TRUE | source_gbif == TRUE))
 species_counts <- subset %>%
-  group_by(site, phylum) %>%
+  group_by(site, redlist_category) %>%
   summarise(species_richness = n_distinct(species))
 
-ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = phylum)) +
+ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redlist_category)) +
   geom_bar(stat = "identity", position = "stack") +
   labs(x = "World Heritage Site", y = "Species Richness") +
   coord_flip() +
   scale_y_continuous(
-    breaks = seq(0, 8000, by = 2000),
-    labels = seq(0, 8000, by = 2000)) + my_theme + ggtitle("b) OBIS/GBIF")
-#barplot1b
+    breaks = seq(0, 200, by = 50),
+    labels = seq(0, 200, by = 50)) +
+  scale_fill_manual(values = my_colors) +
+  my_theme + ggtitle("b) OBIS/GBIF")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_3b (1200x500)
 
 #eDNA
-subset <- subset(sampled_sites4, (source_dna == TRUE))
+subset <- subset(subsample, (source_dna == TRUE))
 species_counts <- subset %>%
-  group_by(site, phylum) %>%
+  group_by(site, redlist_category) %>%
   summarise(species_richness = n_distinct(species))
 
-ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = phylum)) +
+ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redlist_category)) +
   geom_bar(stat = "identity", position = "stack") +
   labs(x = "World Heritage Site", y = "Species Richness") +
   coord_flip() +
   scale_y_continuous(
-    breaks = seq(0, 1000, by = 200),
-    labels = seq(0, 1000, by = 200)) + my_theme + ggtitle("c) eDNA")
-#barplot1c
+    breaks = seq(0, 50, by = 10),
+    labels = seq(0, 50, by = 10)) +
+  scale_fill_manual(values = my_colors) +
+  my_theme + ggtitle("c) eDNA")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_3c (1200x500)
 
 #unique eDNA
-subset <- subset(sampled_sites4, (source_dna == TRUE & source_obis == FALSE & source_gbif == FALSE))
+subset <- subset(subsample, (source_dna == TRUE & source_obis == FALSE & source_gbif == FALSE))
 species_counts <- subset %>%
-  group_by(site, phylum) %>%
+  group_by(site, redlist_category) %>%
   summarise(species_richness = n_distinct(species))
 
-ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = phylum)) +
+ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redlist_category)) +
   geom_bar(stat = "identity", position = "stack") +
   labs(x = "World Heritage Site", y = "Species Richness") +
   coord_flip() +
   scale_y_continuous(
-    breaks = seq(0, 1000, by = 200),
-    labels = seq(0, 1000, by = 200)) + my_theme + ggtitle("d) Unique eDNA")
-#barplot1d
+    breaks = seq(0, 50, by = 5),
+    labels = seq(0, 50, by = 5)) + 
+  scale_fill_manual(values = my_colors) +
+  my_theme + ggtitle("d) Unique eDNA")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_3d (1200x500)
 
 ### ---
 
 # Repeat for fishes
 
 setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
-fishes <- read.csv("fishes.csv", stringsAsFactors=T) # only sampled MWH sites, Kingdom Bacteria, Fungi and Protozoa excluded
+fishes <- read.csv("fishes.csv", stringsAsFactors=T)
 
 # order the sites latitudinally
 ordered_sites <- c(
@@ -767,74 +788,346 @@ fishes$site <- factor(
     "Peninsula Valdés",
     "French Austral Lands and Seas"))
 
-### species by site and class
+subsample <- fishes[fishes$redlist_category %in% c("VU", "EN", "CR"), ]
+
+ordered_sites <- c("CR", "EN", "VU")
+subsample$redlist_category <- factor(
+  subsample$redlist_category,
+  levels = ordered_sites,
+  labels = c("CR", "EN", "VU"))
 
 # all
-library(dplyr)
-library(ggplot2)
-library(forcats)
 
-species_counts <- fishes %>%
-  group_by(site, class) %>%
+species_counts <- subsample %>%
+  group_by(site, redlist_category) %>%
   summarise(species_richness = n_distinct(species))
 
 my_theme=theme_bw()+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_blank(),axis.line.x = element_line(linewidth = 1),axis.line.y = element_line(linewidth = 1),axis.title = element_text(size = 12),axis.text = element_text(size = 12))
+my_colors <- c("#d62728", "#ff7f0e", "#bcbd22")
 
-ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = class)) +
-  geom_bar(stat = "identity", position = "stack") +
-  labs(x = "World Heritage Site", y = "Species Richness") +
-  coord_flip() +
-  scale_y_continuous(
-    breaks = seq(0, 3000, by = 500),
-    labels = seq(0, 3000, by = 500)) + my_theme + ggtitle("a) All")
-#barplot2a
-
-#OBIS/GBIF
-subset <- subset(fishes, (source_obis == TRUE | source_gbif == TRUE))
-species_counts <- subset %>%
-  group_by(site, class) %>%
-  summarise(species_richness = n_distinct(species))
-
-ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = class)) +
-  geom_bar(stat = "identity", position = "stack") +
-  labs(x = "World Heritage Site", y = "Species Richness") +
-  coord_flip() +
-  scale_y_continuous(
-    breaks = seq(0, 3000, by = 500),
-    labels = seq(0, 3000, by = 500)) + my_theme + ggtitle("b) OBIS/GBIF")
-#barplot2b
-
-#eDNA
-subset <- subset(fishes, (source_dna == TRUE))
-species_counts <- subset %>%
-  group_by(site, class) %>%
-  summarise(species_richness = n_distinct(species))
-
-ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = class)) +
-  geom_bar(stat = "identity", position = "stack") +
-  labs(x = "World Heritage Site", y = "Species Richness") +
-  coord_flip() +
-  scale_y_continuous(
-    breaks = seq(0, 1000, by = 200),
-    labels = seq(0, 1000, by = 200)) + my_theme + ggtitle("c) eDNA")
-#barplot2c
-
-#unique eDNA
-subset <- subset(fishes, (source_dna == TRUE & source_obis == FALSE & source_gbif == FALSE))
-species_counts <- subset %>%
-  group_by(site, class) %>%
-  summarise(species_richness = n_distinct(species))
-
-ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = class)) +
+ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redlist_category)) +
   geom_bar(stat = "identity", position = "stack") +
   labs(x = "World Heritage Site", y = "Species Richness") +
   coord_flip() +
   scale_y_continuous(
     breaks = seq(0, 200, by = 50),
-    labels = seq(0, 200, by = 50)) + my_theme + ggtitle("d) Unique eDNA")
-#barplot2d
+    labels = seq(0, 200, by = 50)) +
+  scale_fill_manual(values = my_colors) +
+  my_theme + ggtitle("a) All")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_4a (1200x500)
+
+#OBIS/GBIF
+subset <- subset(subsample, (source_obis == TRUE | source_gbif == TRUE))
+species_counts <- subset %>%
+  group_by(site, redlist_category) %>%
+  summarise(species_richness = n_distinct(species))
+
+ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redlist_category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(x = "World Heritage Site", y = "Species Richness") +
+  coord_flip() +
+  scale_y_continuous(
+    breaks = seq(0, 200, by = 50),
+    labels = seq(0, 200, by = 50)) +
+  scale_fill_manual(values = my_colors) +
+  my_theme + ggtitle("b) OBIS/GBIF")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_4b (1200x500)
+
+#eDNA
+subset <- subset(subsample, (source_dna == TRUE))
+species_counts <- subset %>%
+  group_by(site, redlist_category) %>%
+  summarise(species_richness = n_distinct(species))
+
+ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redlist_category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(x = "World Heritage Site", y = "Species Richness") +
+  coord_flip() +
+  scale_y_continuous(
+    breaks = seq(0, 50, by = 10),
+    labels = seq(0, 50, by = 10)) +
+  scale_fill_manual(values = my_colors) +
+  my_theme + ggtitle("c) eDNA")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_4c (1200x500)
+
+#unique eDNA
+subset <- subset(subsample, (source_dna == TRUE & source_obis == FALSE & source_gbif == FALSE))
+species_counts <- subset %>%
+  group_by(site, redlist_category) %>%
+  summarise(species_richness = n_distinct(species))
+
+ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redlist_category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(x = "World Heritage Site", y = "Species Richness") +
+  coord_flip() +
+  scale_y_continuous(
+    breaks = seq(0, 50, by = 5),
+    labels = seq(0, 50, by = 5)) + 
+  scale_fill_manual(values = my_colors) +
+  my_theme + ggtitle("d) Unique eDNA")+ guides(fill = guide_legend(reverse = TRUE))
+# barplot_4d (1200x500)
 
 ### ----------------------------------
 
+### Phylogenetic diversity
+### ----------------------------------
 
+setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
+sampled_sites4 <- read.csv("sampled_sites4.csv", stringsAsFactors=T)
 
+# order the sites latitudinally
+ordered_sites <- c(
+  "wadden_sea",
+  "gulf_of_porto_calanche_of_piana_gulf_of_girolata_scandola_reserve",
+  "everglades_national_park",
+  "the_sundarbans",
+  "banc_d_arguin_national_park",
+  "archipielago_de_revillagigedo",
+  "belize_barrier_reef_reserve_system",
+  "socotra_archipelago",
+  "tubbataha_reefs_natural_park",
+  "coiba_national_park_and_its_special_zone_of_marine_protection",
+  "cocos_island_national_park",
+  "brazilian_atlantic_islands_fernando_de_noronha_and_atol_das_rocas_reserves",
+  "aldabra_atoll",
+  "lagoons_of_new_caledonia_reef_diversity_and_associated_ecosystems",
+  "ningaloo_coast",
+  "shark_bay_western_australia",
+  "isimangaliso_wetland_park",
+  "lord_howe_island_group",
+  "peninsula_valdes",
+  "french_austral_lands_and_seas")
+
+sampled_sites4$site <- factor(
+  sampled_sites4$site,
+  levels = ordered_sites,
+  labels = c(
+    "Wadden Sea",
+    "Gulf of Porto Calanche of Piana, Gulf of Girolata, Scandola Reserve",
+    "Everglades National Park",
+    "The Sundarbans",
+    "Banc d'Arguin National Park",
+    "Archipiélago de Revillagigedo",
+    "Belize Barrier Reef Reserve System",
+    "Socotra Archipelago",
+    "Tubbataha Reefs Natural Park",
+    "Coiba National Park and its Special Zone of Marine Protection",
+    "Cocos Island National Park",
+    "Brazilian Atlantic Islands: Fernando de Noronha and Atol das Rocas Reserves",
+    "Aldabra Atoll",
+    "Lagoons of New Caledonia: Reef Diversity and Associated Ecosystems",
+    "Ningaloo Coast",
+    "Shark Bay, Western Australia",
+    "iSimangaliso Wetland Park",
+    "Lord Howe Island Group",
+    "Peninsula Valdés",
+    "French Austral Lands and Seas"))
+
+unique_counts <- sampled_sites4 %>%
+  group_by(site) %>%
+  summarise(
+    class_count = n_distinct(ifelse(!is.na(class) & class != "", class, NA)),
+    order_count = n_distinct(ifelse(!is.na(order) & order != "", order, NA)),
+    family_count = n_distinct(ifelse(!is.na(family) & family != "", family, NA)),
+    genus_count = n_distinct(ifelse(!is.na(genus) & genus != "", genus, NA)),
+    species_count = n_distinct(ifelse(!is.na(species) & species != "", species, NA))
+  )
+
+# Calculate STL score
+unique_counts <- mutate(unique_counts, STL = (class_count * 5) + (order_count * 4) + (family_count * 3) + (genus_count * 2))
+
+my_theme=theme_bw()+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_blank(),axis.line.x = element_line(linewidth = 1),axis.line.y = element_line(linewidth = 1),axis.title = element_text(size = 12),axis.text = element_text(size = 12))
+ggplot(unique_counts, aes(x = fct_rev(site), y = STL)) +
+  geom_bar(stat = "identity", position = "stack", width = 0.7, fill="#7f7f7f") +
+  labs(x = "Site", y = "STL") +
+  scale_y_continuous(
+    breaks = seq(0, 12000, by = 2000),
+    labels = seq(0, 12000, by = 2000)) +
+  my_theme +coord_flip()
+# barplot_5a
+
+# Calculate STL/spp score
+unique_counts <- mutate(unique_counts, STLspp = STL / species_count)
+
+ggplot(unique_counts, aes(x = fct_rev(site), y = STLspp)) +
+  geom_bar(stat = "identity", position = "stack", width = 0.7, fill="#7f7f7f") +
+  labs(x = "Site", y = "STL/spp") +
+  scale_y_continuous(
+    breaks = seq(0, 10, by = 2),
+    labels = seq(0, 10, by = 2)) +
+  my_theme +coord_flip()
+# barplot_6a
+
+### ---
+
+# Repeat for fishes
+
+setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
+fishes <- read.csv("fishes.csv", stringsAsFactors=T)
+
+# order the sites latitudinally
+ordered_sites <- c(
+  "wadden_sea",
+  "gulf_of_porto_calanche_of_piana_gulf_of_girolata_scandola_reserve",
+  "everglades_national_park",
+  "the_sundarbans",
+  "banc_d_arguin_national_park",
+  "archipielago_de_revillagigedo",
+  "belize_barrier_reef_reserve_system",
+  "socotra_archipelago",
+  "tubbataha_reefs_natural_park",
+  "coiba_national_park_and_its_special_zone_of_marine_protection",
+  "cocos_island_national_park",
+  "brazilian_atlantic_islands_fernando_de_noronha_and_atol_das_rocas_reserves",
+  "aldabra_atoll",
+  "lagoons_of_new_caledonia_reef_diversity_and_associated_ecosystems",
+  "ningaloo_coast",
+  "shark_bay_western_australia",
+  "isimangaliso_wetland_park",
+  "lord_howe_island_group",
+  "peninsula_valdes",
+  "french_austral_lands_and_seas")
+
+fishes$site <- factor(
+  fishes$site,
+  levels = ordered_sites,
+  labels = c(
+    "Wadden Sea",
+    "Gulf of Porto Calanche of Piana, Gulf of Girolata, Scandola Reserve",
+    "Everglades National Park",
+    "The Sundarbans",
+    "Banc d'Arguin National Park",
+    "Archipiélago de Revillagigedo",
+    "Belize Barrier Reef Reserve System",
+    "Socotra Archipelago",
+    "Tubbataha Reefs Natural Park",
+    "Coiba National Park and its Special Zone of Marine Protection",
+    "Cocos Island National Park",
+    "Brazilian Atlantic Islands: Fernando de Noronha and Atol das Rocas Reserves",
+    "Aldabra Atoll",
+    "Lagoons of New Caledonia: Reef Diversity and Associated Ecosystems",
+    "Ningaloo Coast",
+    "Shark Bay, Western Australia",
+    "iSimangaliso Wetland Park",
+    "Lord Howe Island Group",
+    "Peninsula Valdés",
+    "French Austral Lands and Seas"))
+
+unique_counts <- fishes %>%
+  group_by(site) %>%
+  summarise(
+    class_count = n_distinct(ifelse(!is.na(class) & class != "", class, NA)),
+    order_count = n_distinct(ifelse(!is.na(order) & order != "", order, NA)),
+    family_count = n_distinct(ifelse(!is.na(family) & family != "", family, NA)),
+    genus_count = n_distinct(ifelse(!is.na(genus) & genus != "", genus, NA)),
+    species_count = n_distinct(ifelse(!is.na(species) & species != "", species, NA))
+  )
+
+# Calculate STL score
+unique_counts <- mutate(unique_counts, STL = (class_count * 5) + (order_count * 4) + (family_count * 3) + (genus_count * 2))
+
+my_theme=theme_bw()+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_blank(),axis.line.x = element_line(linewidth = 1),axis.line.y = element_line(linewidth = 1),axis.title = element_text(size = 12),axis.text = element_text(size = 12))
+ggplot(unique_counts, aes(x = fct_rev(site), y = STL)) +
+  geom_bar(stat = "identity", position = "stack", width = 0.7, fill="#7f7f7f") +
+  labs(x = "Site", y = "STL") +
+  scale_y_continuous(
+    breaks = seq(0, 3000, by = 1000),
+    labels = seq(0, 3000, by = 1000)) +
+  my_theme +coord_flip()
+# barplot_5b
+
+# Calculate STL/spp score
+unique_counts <- mutate(unique_counts, STLspp = STL / species_count)
+
+ggplot(unique_counts, aes(x = fct_rev(site), y = STLspp)) +
+  geom_bar(stat = "identity", position = "stack", width = 0.7, fill="#7f7f7f") +
+  labs(x = "Site", y = "STL/spp") +
+  scale_y_continuous(
+    breaks = seq(0, 10, by = 2),
+    labels = seq(0, 10, by = 2)) +
+  my_theme +coord_flip()
+# barplot_6b
+
+####
+
+# repeat for OBIS/GBIF vs eDNA
+
+# Subset 1: source_dna=TRUE
+subset_true <- sampled_sites2[sampled_sites2$source_dna == TRUE, ]
+unique_counts_true <- subset_true %>%
+  group_by(site) %>%
+  summarise(
+    class_count = n_distinct(ifelse(!is.na(class) & class != "", class, NA)),
+    order_count = n_distinct(ifelse(!is.na(order) & order != "", order, NA)),
+    family_count = n_distinct(ifelse(!is.na(family) & family != "", family, NA)),
+    genus_count = n_distinct(ifelse(!is.na(genus) & genus != "", genus, NA)),
+    species_count = n_distinct(ifelse(!is.na(species) & species != "", species, NA))
+  )
+# Calculate STL score
+unique_counts_true <- mutate(unique_counts_true, STL = (class_count * 5) + (order_count * 4) + (family_count * 3) + (genus_count * 2))
+# Calculate STL/spp score
+unique_counts_true <- mutate(unique_counts_true, STLspp = STL / species_count)
+
+# Subset 2: source_dna=FALSE
+subset_false <- sampled_sites2[sampled_sites2$source_dna == FALSE, ]
+unique_counts_false <- subset_false %>%
+  group_by(site) %>%
+  summarise(
+    class_count = n_distinct(ifelse(!is.na(class) & class != "", class, NA)),
+    order_count = n_distinct(ifelse(!is.na(order) & order != "", order, NA)),
+    family_count = n_distinct(ifelse(!is.na(family) & family != "", family, NA)),
+    genus_count = n_distinct(ifelse(!is.na(genus) & genus != "", genus, NA)),
+    species_count = n_distinct(ifelse(!is.na(species) & species != "", species, NA))
+  )
+# Calculate STL score
+unique_counts_false <- mutate(unique_counts_false, STL = (class_count * 5) + (order_count * 4) + (family_count * 3) + (genus_count * 2))
+# Calculate STL/spp score
+unique_counts_false <- mutate(unique_counts_false, STLspp = STL / species_count)
+
+unique_counts_false$STL <- -unique_counts_false$STL  # make STL negative
+unique_counts_false$STLspp <- -unique_counts_false$STLspp # make STL/spp negative
+
+# Combine the subsets
+combined_species_counts <- rbind(unique_counts_true, unique_counts_false)
+
+ggplot(combined_species_counts, aes(x = site, y = STL)) +
+  geom_bar(stat = "identity", position = "stack", width = 0.7, fill="maroon3") +
+  labs(x = "Site",
+       y = "STL") +
+  my_theme +coord_flip()+geom_hline(yintercept = 0, color = 1, lwd = 1)
+#barplot
+
+ggplot(combined_species_counts, aes(x = site, y = STLspp)) +
+  geom_bar(stat = "identity", position = "stack", width = 0.7, fill="maroon3") +
+  labs(x = "Site",
+       y = "STL") +
+  my_theme +coord_flip()+geom_hline(yintercept = 0, color = 1, lwd = 1)
+#barplot
+
+### ----------------------------------
+
+### Functional diversity
+### ----------------------------------
+### ----------------------------------
+
+# sqlite database Pieter
+### ----------------------------------
+library(RSQLite)
+
+con <- dbConnect(SQLite(), dbname = "database.sqlite")
+
+dbListTables(con) # list of tables in the sqlite
+
+h3 <- dbReadTable(con, "h3")
+mwhs_cells <- dbReadTable(con, "mwhs_cells")
+occurrence <- dbReadTable(con, "occurrence")
+realms_cells <- dbReadTable(con, "realms_cells")
+redlist <- dbReadTable(con, "redlist")
+site_cells <- dbReadTable(con, "site_cells")
+sites <- dbReadTable(con, "sites")
+species <- dbReadTable(con, "species")
+
+# Close the database connection when done
+dbDisconnect(con)
+
+### ----------------------------------
