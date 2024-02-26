@@ -1108,6 +1108,195 @@ ggplot(combined_species_counts, aes(x = site, y = STLspp)) +
 
 ### Functional diversity
 ### ----------------------------------
+
+setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
+fishes <- read.csv("fishes.csv", stringsAsFactors=T)
+
+length(unique(fishes$species))
+library(rfishbase)
+
+fish_species <- unique(fishes$species) # 7109 spp
+
+# Retrieve trait info from FishBase and check which traits have info for more than 50 % of the spp
+
+.5*7109 # 3554.5 = 3555 spp with data as criteria to keep a trait
+
+a <- species(fish_species) # 7058
+write.csv(a, file = "FunctionalDiversity/species.csv", row.names = F)
+a$Species[duplicated(a$Species)] #no
+non_na_counts <- colSums(!is.na(a))
+selected_columns <- names(non_na_counts[non_na_counts >= 3555])
+
+b <- reproduction(fish_species) # 4574
+write.csv(b, file = "FunctionalDiversity/reproduction.csv", row.names = F)
+b$Species[duplicated(b$Species)] #no
+non_na_counts <- colSums(!is.na(b))
+selected_columns <- names(non_na_counts[non_na_counts >= 3555])
+
+c <- ecology(fish_species) # 4574
+write.csv(c, file = "FunctionalDiversity/ecology.csv", row.names = F)
+c$Species[duplicated(c$Species)] #yes
+non_na_counts <- colSums(!is.na(c))
+selected_columns <- names(non_na_counts[non_na_counts >= 3555])
+
+#---
+
+# get the site x spp presence-absence matrix
+
+setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
+fishes <- read.csv("fishes.csv", stringsAsFactors=T)
+
+unique_species <- unique(fishes$species)
+unique_sites <- unique(fishes$site)
+
+unique_species <- sort(unique_species)
+
+presence_absence_matrix <- matrix(0, nrow = length(unique_sites), ncol = length(unique_species),
+                                  dimnames = list(unique_sites, unique_species))
+
+for (i in 1:nrow(fishes)) {
+  row_index <- which(unique_sites == fishes[i, "site"])
+  col_index <- which(unique_species == fishes[i, "species"])
+  presence_absence_matrix[row_index, col_index] <- 1
+}
+
+#---
+
+traits <- read.csv("FunctionalDiversity/funcdiversity.csv", stringsAsFactors=T, sep="\t", row.names = 1) # spp x traits matrix
+
+# 1 option - remove spp with NAs for any trait
+rows_with_any_na <- row.names(traits)[rowSums(is.na(traits)) > 0]
+length(rows_with_any_na) # 4309 spp with any NA value in FishBase
+traits_clean <- traits[!row.names(traits) %in% rows_with_any_na, ] # remove them
+str(traits_clean) # 2,800 spp
+presence_absence_matrix_clean <- presence_absence_matrix[, !colnames(presence_absence_matrix) %in% rows_with_any_na] # remove them also from the site x spp matrix
+ncol(presence_absence_matrix_clean) # check, it has to be equal to traits
+
+summary(traits_clean) # there are some details that need to be fixed
+traits_clean$BodyShapeI <- as.factor(gsub("other\\(seeremarks\\)", "other", traits_clean$BodyShapeI))
+traits_clean$BodyShapeI <- as.factor(gsub("Elongated", "elongated", traits_clean$BodyShapeI))
+unique(traits_clean$BodyShapeI)
+unique(traits_clean$Environment)
+unique(traits_clean$Habitat)
+unique(traits_clean$ReproMode)
+unique(traits_clean$Fertilization)
+unique(traits_clean$RepGuild1)
+
+duplicated(traits_clean) # duplicate rows causes the error: In is.euclid(x.dist) : Zero distance(s)
+traits_clean2 <- unique(traits_clean) # delete duplicates
+str(traits_clean2) # 2,762 spp
+removed_species <- setdiff(rownames(traits_clean), rownames(traits_clean2)) # delete these spp also from the matrix
+presence_absence_matrix_clean2 <- presence_absence_matrix_clean[, !colnames(presence_absence_matrix_clean) %in% removed_species]
+ncol(presence_absence_matrix_clean2) # check with traits
+
+library(FD)
+dist_matrix <- gowdis(traits_clean2)
+
+# Perform PCoA on the distance matrix
+pcoa_result <- pcoa(dist_matrix)
+eigenvalues <- pcoa_result$values$Eigenvalues
+variance_explained <- eigenvalues / sum(eigenvalues2)
+sum(variance_explained[1:4]) # 0.93
+eigenvectors <- pcoa_result$vectors[, 1:4] # get the 4 first eigenvectors
+
+# Get the functional diversity metrics
+result <- dbFD(x=eigenvectors, a=presence_absence_matrix_clean2)
+fric<-as.data.frame(result$FRic)
+feve<-as.data.frame(result$FEve)
+fdiv<-as.data.frame(result$FDiv)
+
+# plot
+# order the sites latitudinally
+ordered_sites <- c(
+  "wadden_sea",
+  "gulf_of_porto_calanche_of_piana_gulf_of_girolata_scandola_reserve",
+  "everglades_national_park",
+  "the_sundarbans",
+  "banc_d_arguin_national_park",
+  "archipielago_de_revillagigedo",
+  "belize_barrier_reef_reserve_system",
+  "socotra_archipelago",
+  "tubbataha_reefs_natural_park",
+  "coiba_national_park_and_its_special_zone_of_marine_protection",
+  "cocos_island_national_park",
+  "brazilian_atlantic_islands_fernando_de_noronha_and_atol_das_rocas_reserves",
+  "aldabra_atoll",
+  "lagoons_of_new_caledonia_reef_diversity_and_associated_ecosystems",
+  "ningaloo_coast",
+  "shark_bay_western_australia",
+  "isimangaliso_wetland_park",
+  "lord_howe_island_group",
+  "peninsula_valdes",
+  "french_austral_lands_and_seas")
+
+combined_data <- data.frame(site = rownames(fric), fric = fric[,1], feve = feve[,1], fdiv = fdiv[,1])
+ordered_data <- combined_data[match(ordered_sites, combined_data$site), ]
+
+ordered_data$site <- factor(
+  ordered_data$site,
+  levels = ordered_sites,
+  labels = c(
+    "Wadden Sea",
+    "Gulf of Porto Calanche of Piana, Gulf of Girolata, Scandola Reserve",
+    "Everglades National Park",
+    "The Sundarbans",
+    "Banc d'Arguin National Park",
+    "Archipiélago de Revillagigedo",
+    "Belize Barrier Reef Reserve System",
+    "Socotra Archipelago",
+    "Tubbataha Reefs Natural Park",
+    "Coiba National Park and its Special Zone of Marine Protection",
+    "Cocos Island National Park",
+    "Brazilian Atlantic Islands: Fernando de Noronha and Atol das Rocas Reserves",
+    "Aldabra Atoll",
+    "Lagoons of New Caledonia: Reef Diversity and Associated Ecosystems",
+    "Ningaloo Coast",
+    "Shark Bay, Western Australia",
+    "iSimangaliso Wetland Park",
+    "Lord Howe Island Group",
+    "Peninsula Valdés",
+    "French Austral Lands and Seas"))
+
+ordered_data_long <- ordered_data %>%
+  pivot_longer(cols = c(fric, feve, fdiv),
+               names_to = "Metric",
+               values_to = "Value")
+
+my_theme=theme_bw()+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_blank(),axis.line.x = element_line(linewidth = 1),axis.line.y = element_line(linewidth = 1),axis.title = element_text(size = 12),axis.text = element_text(size = 12))
+ggplot(ordered_data_long, aes(x = fct_rev(site), y = Value, fill = Metric)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  labs(x = "Site", y = "Functional diversity") +
+  scale_y_continuous(
+    breaks = seq(0, 200, by = 50),
+    labels = seq(0, 200, by = 50)) +
+  my_theme +
+  coord_flip()
+
+# we need to scale the variables to visualize them because fric is in a much larger scale
+
+library(caret)
+process <- preProcess(ordered_data[,c("fric", "feve", "fdiv")], method = c("range"))
+scaled_data <- predict(process, ordered_data[,c("fric", "feve", "fdiv")])
+colnames(scaled_data) <- c("scaled_fric", "scaled_feve", "scaled_fdiv")
+
+ordered_data_long <- cbind(ordered_data$site,stack(scaled_data))
+colnames(ordered_data_long) <- c("site", "value", "metric")
+
+
+metric_order <- c("scaled_fdiv", "scaled_feve", "scaled_fric")
+ordered_data_long$metric <- factor(ordered_data_long$metric, levels = metric_order)
+
+my_colors <- c("#e377c2", "#17becf", "#2ca02c")
+ggplot(ordered_data_long, aes(x = fct_rev(site), y = value, fill = metric)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  labs(x = "Site", y = "Functional diversity") +
+  scale_y_continuous(
+    breaks = seq(0, 1, by = .2),
+    labels = seq(0, 1, by = .2)) +
+  scale_fill_manual(values = my_colors) + my_theme + guides(fill = guide_legend(reverse = TRUE)) +
+  coord_flip()
+# barplot_7  (1200x500)
+
 ### ----------------------------------
 
 # sqlite database Pieter
