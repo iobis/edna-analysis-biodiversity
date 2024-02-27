@@ -1299,24 +1299,110 @@ ggplot(ordered_data_long, aes(x = fct_rev(site), y = value, fill = metric)) +
 
 ### ----------------------------------
 
-# sqlite database Pieter
+### Biogeographic realms
 ### ----------------------------------
-library(RSQLite)
 
+# sqlite database Pieter
+library(RSQLite)
+setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
 con <- dbConnect(SQLite(), dbname = "database.sqlite")
 
 dbListTables(con) # list of tables in the sqlite
 
-h3 <- dbReadTable(con, "h3")
+# extract sampled sites
 mwhs_cells <- dbReadTable(con, "mwhs_cells")
-occurrence <- dbReadTable(con, "occurrence")
-realms_cells <- dbReadTable(con, "realms_cells")
-redlist <- dbReadTable(con, "redlist")
-site_cells <- dbReadTable(con, "site_cells")
-sites <- dbReadTable(con, "sites")
-species <- dbReadTable(con, "species")
+head(mwhs_cells)
+unique(mwhs_cells$site_id)
+sampled_sites <- mwhs_cells[mwhs_cells$site_id %in% c(
+  "wadden_sea",
+  "gulf_of_porto_calanche_of_piana_gulf_of_girolata_scandola_reserve",
+  "everglades_national_park",
+  "the_sundarbans",
+  "banc_d_arguin_national_park",
+  "archipielago_de_revillagigedo",
+  "belize_barrier_reef_reserve_system",
+  "socotra_archipelago",
+  "tubbataha_reefs_natural_park",
+  "coiba_national_park_and_its_special_zone_of_marine_protection",
+  "cocos_island_national_park",
+  "brazilian_atlantic_islands_fernando_de_noronha_and_atol_das_rocas_reserves",
+  "aldabra_atoll",
+  "lagoons_of_new_caledonia_reef_diversity_and_associated_ecosystems",
+  "ningaloo_coast",
+  "shark_bay_western_australia",
+  "isimangaliso_wetland_park",
+  "lord_howe_island_group",
+  "peninsula_valdes",
+  "french_austral_lands_and_seas"), ]
+unique(sampled_sites$site_id)
 
-# Close the database connection when done
-dbDisconnect(con)
+# extract sampled realms
+realms_cells <- dbReadTable(con, "realms_cells")
+head(realms_cells)
+length(unique(realms_cells$realm)) # 29
+merged_data <- merge(realms_cells, sampled_sites, by = "h3", all.x = TRUE)
+unique(merged_data$realm)
+
+realm_with_sites <- merged_data %>%
+  group_by(realm) %>%
+  filter(any(!is.na(site_id)))
+merged_data2 <- merged_data[merged_data$realm %in% realm_with_sites$realm, ]
+unique(merged_data2$realm)
+
+# extract species on sampled realms and sites
+occurrence <- dbReadTable(con, "occurrence")
+merged_occurrence <- merge(occurrence, merged_data2[, c("h3", "site_id", "realm")], by = "h3", all.x = TRUE)
+merged_occurrence2 <- merged_occurrence %>% filter(!is.na(realm))
+unique(merged_occurrence2$site_id) # NAs for occurrences out of sites
+unique(merged_occurrence2$realm)
+length(unique(merged_occurrence2$species)) # 145,945 spp
+
+# 1st percentage
+total_species_per_realm <- merged_occurrence2 %>%
+  group_by(realm) %>%
+  summarize(total_species = n_distinct(species))
+total_species_per_realm
+
+site_species_percentage <- merged_occurrence2 %>%
+  group_by(site_id, realm) %>%
+  summarize(unique_species = n_distinct(species)) %>%
+  left_join(total_species_per_realm, by = "realm") %>%
+  mutate(percentage_of_realm_species = unique_species / total_species * 100)
+print(site_species_percentage,n=32)
+
+# 2nd percentage
+sum(is.na(merged_occurrence2$site_id))
+sum(is.na(merged_occurrence2$realm))
+
+valid_sites <- merged_occurrence2 %>%
+  filter(!is.na(site_id))
+head(valid_sites)
+
+unique_species_per_realm <- valid_sites %>%
+  group_by(realm) %>%
+  summarize(unique_species = n_distinct(species))
+unique_species_per_realm
+
+sites_per_realm <- valid_sites %>%
+  group_by(realm, site_id) %>%
+  summarize() %>%
+  summarize(sites = n())
+sites_per_realm
+
+total_unique_species_per_realm <- merged_occurrence2 %>%
+  group_by(realm) %>%
+  summarize(total_unique_species = n_distinct(species))
+total_unique_species_per_realm
+length(unique(merged_occurrence2$species[merged_occurrence2$realm==11]))
+length(unique(merged_occurrence2$species[merged_occurrence2$realm==12]))
+
+combined_info <- valid_sites %>%
+  group_by(realm, site_id) %>%
+  summarize() %>%
+  summarize(sites = n()) %>%
+  left_join(total_unique_species_per_realm, by = "realm") %>%
+  left_join(unique_species_per_realm, by = "realm") %>%
+  mutate(percentage_valid_sites = (unique_species / total_unique_species) * 100)
+combined_info
 
 ### ----------------------------------
