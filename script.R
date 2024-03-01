@@ -1406,3 +1406,164 @@ combined_info <- valid_sites %>%
 combined_info
 
 ### ----------------------------------
+
+### Similarities between WH sites
+### ----------------------------------
+
+setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
+sampled_sites4 <- read.csv("sampled_sites4.csv", stringsAsFactors=T)
+
+# order the sites latitudinally
+ordered_sites <- c(
+  "wadden_sea",
+  "gulf_of_porto_calanche_of_piana_gulf_of_girolata_scandola_reserve",
+  "everglades_national_park",
+  "the_sundarbans",
+  "banc_d_arguin_national_park",
+  "archipielago_de_revillagigedo",
+  "belize_barrier_reef_reserve_system",
+  "socotra_archipelago",
+  "tubbataha_reefs_natural_park",
+  "coiba_national_park_and_its_special_zone_of_marine_protection",
+  "cocos_island_national_park",
+  "brazilian_atlantic_islands_fernando_de_noronha_and_atol_das_rocas_reserves",
+  "aldabra_atoll",
+  "lagoons_of_new_caledonia_reef_diversity_and_associated_ecosystems",
+  "ningaloo_coast",
+  "shark_bay_western_australia",
+  "isimangaliso_wetland_park",
+  "lord_howe_island_group",
+  "peninsula_valdes",
+  "french_austral_lands_and_seas")
+
+sampled_sites4$site <- factor(
+  sampled_sites4$site,
+  levels = ordered_sites,
+  labels = c(
+    "Wadden Sea",
+    "Gulf of Porto Calanche of Piana, Gulf of Girolata, Scandola Reserve",
+    "Everglades National Park",
+    "The Sundarbans",
+    "Banc d'Arguin National Park",
+    "Archipiélago de Revillagigedo",
+    "Belize Barrier Reef Reserve System",
+    "Socotra Archipelago",
+    "Tubbataha Reefs Natural Park",
+    "Coiba National Park and its Special Zone of Marine Protection",
+    "Cocos Island National Park",
+    "Brazilian Atlantic Islands: Fernando de Noronha and Atol das Rocas Reserves",
+    "Aldabra Atoll",
+    "Lagoons of New Caledonia: Reef Diversity and Associated Ecosystems",
+    "Ningaloo Coast",
+    "Shark Bay, Western Australia",
+    "iSimangaliso Wetland Park",
+    "Lord Howe Island Group",
+    "Peninsula Valdés",
+    "French Austral Lands and Seas"))
+
+# presence-absence matrix
+unique_species <- unique(sampled_sites4$species)
+unique_sites <- unique(sampled_sites4$site)
+
+unique_species <- sort(unique_species)
+
+presence_absence_matrix <- matrix(0, nrow = length(unique_sites), ncol = length(unique_species),
+                                  dimnames = list(unique_sites, unique_species))
+
+for (i in 1:nrow(sampled_sites4)) {
+  row_index <- which(unique_sites == sampled_sites4[i, "site"])
+  col_index <- which(unique_species == sampled_sites4[i, "species"])
+  presence_absence_matrix[row_index, col_index] <- 1
+}
+
+# alternative
+library(reshape2)
+presence_absence_matrix <- dcast(data = sampled_sites4, site ~ species, value.var = "records", fun.aggregate = function(x) { ifelse(sum(x) > 0, 1, 0) })
+
+write.csv(presence_absence_matrix, file = "presence_absence_matrix.csv", row.names = FALSE)
+
+
+setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
+presence_absence_matrix <- read.csv("presence_absence_matrix.csv", stringsAsFactors=T)
+
+# 1 - Pairwise Jaccard Similarities between Sites
+jaccard_similarities <- dist(as.matrix(presence_absence_matrix), method = "binary")
+jaccard_similarities <- 1 - as.matrix(jaccard_similarities) # Convert the distances to similarity matrix
+heatmap(jaccard_similarities, 
+        Rowv = NULL, Colv = NULL, 
+        col = colorRampPalette(c("white", "red"))(100),
+        scale = "none")
+# alternative
+library(gplots)
+p <- heatmap.2(jaccard_similarities, 
+               Rowv = NULL, Colv = NULL, 
+               col = colorRampPalette(c("white", "red"))(100),
+               scale = "none")
+p + theme(plot.margin = margin(1, 2, 1, 1, "cm"))
+
+# 2 - nMDS
+library(vegan)
+nmds1 <-metaMDS(presence_absence_matrix, distance = "jaccard", k = 2, maxit = 999,trymax = 500, wascores = T)
+nmds1
+#Generally, stress < 0.05 provides an excellent represention in reduced dimensions, < 0.1 is great, < 0.2 is good, and stress > 0.3 provides a poor representation
+
+#Shepard test/goodness of fit
+goodness(nmds1) # Produces a results of test statistics for goodness of fit for each point
+par(mar=c(5,5,1,2))
+stressplot(nmds1) # Produces a Shepard diagram
+#Shepard plot, which shows scatter around the regression between the interpoint distances in the final configuration (i.e., the distances between each pair of communities) against their original dissimilarities.
+#Large scatter around the line suggests that original dissimilarities are not well preserved in the reduced number of dimensions.
+plot(nmds1)
+
+library(ggplot2)
+site_coordinates <- as.data.frame(scores(nmds1, display = "sites")) # extract NMDS scores (x and y coordinates)
+site_coordinates$site <- rownames(site_coordinates)
+my_theme=theme_bw()+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_blank(),axis.line.x = element_line(linewidth = 1),axis.line.y = element_line(linewidth = 1),axis.title = element_text(size = 12),axis.text = element_text(size = 12))
+p <- ggplot(site_coordinates, aes(x = NMDS1, y = NMDS2)) +
+  geom_point() +
+  geom_text(aes(label = site), vjust = -0.5) +
+  labs(x = "NMDS1", y = "NMDS2") +  my_theme
+p + theme(plot.margin = margin(1, 1, 1, 1, "cm"))
+
+# 3 - other alternatives, e.g. pvclust
+
+### ----------------------------------
+
+### B-diversity
+### ----------------------------------
+
+setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
+presence_absence_matrix <- read.csv("presence_absence_matrix.csv", stringsAsFactors=T)
+
+library(betapart)
+a<-nestedbetasor(presence_absence_matrix)
+oecosimu(presence_absence_matrix, nestedbetasor, "quasiswap", nsimul = 100)
+
+# beta diversity for each pair of sites
+compute_beta_diversity <- function(matrix) {
+  num_sites <- ncol(matrix)
+  beta_diversity <- matrix(NA, nrow = num_sites, ncol = num_sites,
+                           dimnames = list(colnames(matrix), colnames(matrix)))
+  
+  for (i in 1:num_sites) {
+    for (j in 1:num_sites) {
+      if (i != j) {
+        site1 <- matrix[, i]
+        site2 <- matrix[, j]
+        beta_result <- nestedbetasor(rbind(site1, site2))
+        beta_diversity[i, j] <- beta_result[[1]]  # Extracting the first result (turnover)
+        # beta_diversity[i, j] <- beta_result[[2]]  # Extracting the second result (nestedness)
+        # beta_diversity[i, j] <- beta_result[[3]]  # Extracting the third result (Sorensen index)
+      } else {
+        beta_diversity[i, j] <- NA
+      }
+    }
+  }
+  
+  return(beta_diversity)
+}
+
+beta_diversity_matrix <- compute_beta_diversity(presence_absence_matrix)
+print(beta_diversity_matrix)
+
+### ----------------------------------
