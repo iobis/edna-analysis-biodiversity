@@ -1440,26 +1440,26 @@ sampled_sites4$site <- factor(
   sampled_sites4$site,
   levels = ordered_sites,
   labels = c(
-    "Wadden Sea",
-    "Gulf of Porto Calanche of Piana, Gulf of Girolata, Scandola Reserve",
-    "Everglades National Park",
-    "The Sundarbans",
-    "Banc d'Arguin National Park",
-    "Archipiélago de Revillagigedo",
-    "Belize Barrier Reef Reserve System",
-    "Socotra Archipelago",
-    "Tubbataha Reefs Natural Park",
-    "Coiba National Park and its Special Zone of Marine Protection",
-    "Cocos Island National Park",
-    "Brazilian Atlantic Islands: Fernando de Noronha and Atol das Rocas Reserves",
-    "Aldabra Atoll",
-    "Lagoons of New Caledonia: Reef Diversity and Associated Ecosystems",
-    "Ningaloo Coast",
-    "Shark Bay, Western Australia",
-    "iSimangaliso Wetland Park",
-    "Lord Howe Island Group",
-    "Peninsula Valdés",
-    "French Austral Lands and Seas"))
+    "WS",
+    "GPCP,GG,SR",
+    "ENP",
+    "TS",
+    "Bd'ANP",
+    "AR",
+    "BBRRS",
+    "SA",
+    "TRNP",
+    "CNPSZMP",
+    "CINP",
+    "BAI:FNARR",
+    "AA",
+    "LNC:RDAE",
+    "NC",
+    "SBB,WA",
+    "iSWP",
+    "LHIG",
+    "PV",
+    "FALS"))
 
 # presence-absence matrix
 unique_species <- unique(sampled_sites4$species)
@@ -1480,7 +1480,7 @@ for (i in 1:nrow(sampled_sites4)) {
 library(reshape2)
 presence_absence_matrix <- dcast(data = sampled_sites4, site ~ species, value.var = "records", fun.aggregate = function(x) { ifelse(sum(x) > 0, 1, 0) })
 
-write.csv(presence_absence_matrix, file = "presence_absence_matrix.csv", row.names = FALSE)
+write.csv(presence_absence_matrix, file = "presence_absence_matrix.csv", row.names = F)
 
 
 setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
@@ -1535,35 +1535,38 @@ p + theme(plot.margin = margin(1, 1, 1, 1, "cm"))
 setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
 presence_absence_matrix <- read.csv("presence_absence_matrix.csv", stringsAsFactors=T)
 
-library(betapart)
+library(vegan)
 a<-nestedbetasor(presence_absence_matrix)
-oecosimu(presence_absence_matrix, nestedbetasor, "quasiswap", nsimul = 100)
+a
+oecosimu(presence_absence_matrix, nestedbetasor, "quasiswap", nsimul = 10)
 
-# beta diversity for each pair of sites
-compute_beta_diversity <- function(matrix) {
-  num_sites <- ncol(matrix)
-  beta_diversity <- matrix(NA, nrow = num_sites, ncol = num_sites,
-                           dimnames = list(colnames(matrix), colnames(matrix)))
-  
-  for (i in 1:num_sites) {
-    for (j in 1:num_sites) {
-      if (i != j) {
-        site1 <- matrix[, i]
-        site2 <- matrix[, j]
-        beta_result <- nestedbetasor(rbind(site1, site2))
-        beta_diversity[i, j] <- beta_result[[1]]  # Extracting the first result (turnover)
-        # beta_diversity[i, j] <- beta_result[[2]]  # Extracting the second result (nestedness)
-        # beta_diversity[i, j] <- beta_result[[3]]  # Extracting the third result (Sorensen index)
-      } else {
-        beta_diversity[i, j] <- NA
-      }
-    }
-  }
-  
-  return(beta_diversity)
-}
+# Calculate beta diversity for each pair of sites
+beta_diversity <- beta.pair(presence_absence_matrix, index.family="sorensen")
+beta_diversity
 
-beta_diversity_matrix <- compute_beta_diversity(presence_absence_matrix)
-print(beta_diversity_matrix)
+library(gplots)
+# Heatmap - Sorensen pair-wise dissimilarity
+beta_sor_matrix <- as.matrix(beta_diversity$beta.sor)
+beta_sor_matrix[lower.tri(beta_sor_matrix)] <- NA
+heatmap(beta_sor_matrix, 
+        Rowv = NA, Colv = NA, 
+        col = colorRampPalette(c("white", "red"))(100),
+        scale = "none")
+
+# Heatmap - nestedness
+beta_sne_matrix <- as.matrix(beta_diversity$beta.sne)
+beta_sne_matrix[lower.tri(beta_sne_matrix)] <- NA
+heatmap(beta_sne_matrix, 
+        Rowv = NA, Colv = NA, 
+        col = colorRampPalette(c("white", "red"))(100),
+        scale = "none")
+
+# Heatmap - turnover
+beta_sim_matrix <- as.matrix(beta_diversity$beta.sim)
+beta_sim_matrix[lower.tri(beta_sim_matrix)] <- NA
+heatmap(beta_sim_matrix, 
+        Rowv = NA, Colv = NA, 
+        col = colorRampPalette(c("white", "red"))(100),
+        scale = "none")
 
 ### ----------------------------------
