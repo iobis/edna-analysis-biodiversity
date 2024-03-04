@@ -1489,17 +1489,28 @@ presence_absence_matrix <- read.csv("presence_absence_matrix.csv", stringsAsFact
 # 1 - Pairwise Jaccard Similarities between Sites
 jaccard_similarities <- dist(as.matrix(presence_absence_matrix), method = "binary")
 jaccard_similarities <- 1 - as.matrix(jaccard_similarities) # Convert the distances to similarity matrix
+jaccard_similarities
+jaccard_similarities[lower.tri(jaccard_similarities)] <- NA
 heatmap(jaccard_similarities, 
         Rowv = NULL, Colv = NULL, 
         col = colorRampPalette(c("white", "red"))(100),
         scale = "none")
 # alternative
-library(gplots)
-p <- heatmap.2(jaccard_similarities, 
-               Rowv = NULL, Colv = NULL, 
-               col = colorRampPalette(c("white", "red"))(100),
-               scale = "none")
-p + theme(plot.margin = margin(1, 2, 1, 1, "cm"))
+jaccard_similarities <- dist(as.matrix(presence_absence_matrix), method = "binary")
+jaccard_similarities <- 1 - as.matrix(jaccard_similarities) # Convert the distances to similarity matrix
+library(ggplot2)
+library(tidyr)
+site_names <- rownames(jaccard_similarities)
+heatmap_data <- as.data.frame(as.table(jaccard_similarities))
+colnames(heatmap_data) <- c("row", "col", "similarity")
+heatmap_data$row <- site_names[heatmap_data$row]
+heatmap_data$col <- site_names[heatmap_data$col]
+heatmap_data <- heatmap_data[heatmap_data$row <= heatmap_data$col, ]
+my_theme=theme_bw()+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_blank(),axis.line.x = element_line(linewidth = 1),axis.line.y = element_line(linewidth = 1),axis.title = element_text(size = 12),axis.text = element_text(size = 12))
+ggplot(heatmap_data, aes(x = col, y = row, fill = similarity)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "red") + scale_y_discrete(position = "right") +
+  my_theme + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 # 2 - nMDS
 library(vegan)
@@ -1568,5 +1579,79 @@ heatmap(beta_sim_matrix,
         Rowv = NA, Colv = NA, 
         col = colorRampPalette(c("white", "red"))(100),
         scale = "none")
+
+# alternative
+library(ggplot2)
+library(gridExtra)
+library(tidyr)
+
+lower_triangular <- function(mat) {
+  mat[upper.tri(mat)] <- NA
+  return(mat)
+}
+
+beta_diversity <- beta.pair(presence_absence_matrix, index.family = "sorensen")
+
+# Extract dissimilarity matrices
+beta_sor_matrix <- as.matrix(beta_diversity$beta.sor)
+beta_sne_matrix <- as.matrix(beta_diversity$beta.sne)
+beta_sim_matrix <- as.matrix(beta_diversity$beta.sim)
+
+# Convert dissimilarity matrices to long format for ggplot
+heatmap_data_sor <- as.data.frame(as.table(beta_sor_matrix))
+heatmap_data_sne <- as.data.frame(as.table(beta_sne_matrix))
+heatmap_data_sim <- as.data.frame(as.table(beta_sim_matrix))
+
+# Set column names
+colnames(heatmap_data_sor) <- c("row", "col", "dissimilarity")
+colnames(heatmap_data_sne) <- c("row", "col", "dissimilarity")
+colnames(heatmap_data_sim) <- c("row", "col", "dissimilarity")
+
+# Set row and column labels
+site_names <- rownames(beta_sor_matrix)
+heatmap_data_sor$row <- site_names[heatmap_data_sor$row]
+heatmap_data_sor$col <- site_names[heatmap_data_sor$col]
+heatmap_data_sne$row <- site_names[heatmap_data_sne$row]
+heatmap_data_sne$col <- site_names[heatmap_data_sne$col]
+heatmap_data_sim$row <- site_names[heatmap_data_sim$row]
+heatmap_data_sim$col <- site_names[heatmap_data_sim$col]
+
+# Filter out upper triangle values
+heatmap_data_sor <- heatmap_data_sor[heatmap_data_sor$row <= heatmap_data_sor$col, ]
+heatmap_data_sne <- heatmap_data_sne[heatmap_data_sne$row <= heatmap_data_sne$col, ]
+heatmap_data_sim <- heatmap_data_sim[heatmap_data_sim$row <= heatmap_data_sim$col, ]
+
+color_limits <- range(0, 1)
+my_theme <- theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        axis.line.x = element_line(linewidth = 1),
+        axis.line.y = element_line(linewidth = 1),
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 12))
+
+plot_sor <- ggplot(heatmap_data_sor, aes(x = col, y = row, fill = dissimilarity)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "red", limits = color_limits) +
+  scale_y_discrete(position = "right") +
+  my_theme + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ggtitle("Sorensen Dissimilarity")
+
+plot_sne <- ggplot(heatmap_data_sne, aes(x = col, y = row, fill = dissimilarity)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "red", limits = color_limits) +
+  scale_y_discrete(position = "right") +
+  my_theme + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ggtitle("Nestedness")
+
+plot_sim <- ggplot(heatmap_data_sim, aes(x = col, y = row, fill = dissimilarity)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "red", limits = color_limits) +
+  scale_y_discrete(position = "right") +
+  my_theme + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ggtitle("Turnover")
+
+grid.arrange(plot_sor, plot_sne, plot_sim, ncol = 3)
 
 ### ----------------------------------
