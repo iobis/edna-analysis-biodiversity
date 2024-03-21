@@ -1293,7 +1293,9 @@ ggplot(ordered_data, aes(x = fct_rev(site), y = feve)) +
     labels = seq(0, 1, by = .2)) +
   my_theme +
   coord_flip()
-# we need to scale the variables to visualize them because fric is in a much larger scale
+# barplot_7  (1200x500)
+
+# second option - scale the variables to visualize them because fric is in a much larger scale
 
 library(caret)
 process <- preProcess(ordered_data[,c("fric", "feve", "fdiv")], method = c("range"))
