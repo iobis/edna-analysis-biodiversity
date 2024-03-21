@@ -1257,6 +1257,8 @@ ordered_data$site <- factor(
     "Peninsula Valdés",
     "French Austral Lands and Seas"))
 
+# first option - the three metrics together
+
 library(tidyr)
 ordered_data_long <- ordered_data %>%
   pivot_longer(cols = c(fric, feve, fdiv),
@@ -1274,7 +1276,7 @@ ggplot(ordered_data_long, aes(x = fct_rev(site), y = Value, fill = Metric)) +
   my_theme +
   coord_flip()
 
-# alternative to visualize fric and feve
+# alternative to visualize fric and feve/fdiv separately
 
 my_theme=theme_bw()+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_blank(),axis.line.x = element_line(linewidth = 1),axis.line.y = element_line(linewidth = 1),axis.title = element_text(size = 12),axis.text = element_text(size = 12))
 ggplot(ordered_data, aes(x = fct_rev(site), y = fric)) +
@@ -1285,6 +1287,8 @@ ggplot(ordered_data, aes(x = fct_rev(site), y = fric)) +
     labels = seq(0, 200, by = 50)) +
   my_theme +
   coord_flip()
+# barplot_7a  (1200x500)
+
 ggplot(ordered_data, aes(x = fct_rev(site), y = feve)) +
   geom_bar(stat = "identity", position = "dodge", width = 0.7) +
   labs(x = "Site", y = "Functional eveness") +
@@ -1293,7 +1297,34 @@ ggplot(ordered_data, aes(x = fct_rev(site), y = feve)) +
     labels = seq(0, 1, by = .2)) +
   my_theme +
   coord_flip()
-# barplot_7  (1200x500)
+# barplot_7b  (1200x500)
+
+ggplot(ordered_data, aes(x = fct_rev(site), y = fdiv)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  labs(x = "Site", y = "Functional divergence") +
+  scale_y_continuous(
+    breaks = seq(0, 1, by = .2),
+    labels = seq(0, 1, by = .2)) +
+  my_theme +
+  coord_flip()
+# barplot_7c  (1200x500)
+
+library(tidyr)
+ordered_data_long <- ordered_data %>%
+  pivot_longer(cols = c(feve, fdiv),
+               names_to = "Metric",
+               values_to = "Value")
+
+library(forcats)
+ggplot(ordered_data_long, aes(x = fct_rev(site), y = Value, fill = Metric)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  labs(x = "Site", y = "Functional diversity") +
+  scale_y_continuous(
+    breaks = seq(0, 1, by = .2),
+    labels = seq(0, 1, by = .2)) +
+  my_theme +
+  coord_flip()
+# barplot_7bc  (1200x500)
 
 # second option - scale the variables to visualize them because fric is in a much larger scale
 
