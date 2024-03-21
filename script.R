@@ -275,8 +275,8 @@ Molluscs <- sampled_sites4[(sampled_sites4$class %in% c("Mollusca")), ]
 OtherInverts <- sampled_sites4[(sampled_sites4$class %in% c("Acanthocephala","Brachiopoda","Bryozoa","Chaetognatha","Ctenophora","Cycliophora","Dicyemida","Entoprocta","Gastrotricha","Gnathostomulida",
                                                             "Hemichordata","Kinorhyncha","Nematoda","Nemertea","Phoronida","Platyhelminthes","Porifera","Priapulida","Rotifera","Tardigrada","Xenacoelomorpha")), ]
 
-Chromista <- sampled_sites4[(sampled_sites4$class %in% c("Bacillariophyta","Bigyra","Cercozoa","Ciliophora","Cryptophyta","Foraminifera","Haptophyta","Myzozoa","Ochrophyta","Oomycota","Radiozoa")), ]
-Plantae <- sampled_sites4[(sampled_sites4$class %in% c("Bryophyta","Charophyta","Chlorophyta","Prasinodermatophyta","Rhodophyta","Tracheophyta")), ]
+Chromista <- sampled_sites4[(sampled_sites4$phylum %in% c("Bacillariophyta","Bigyra","Cercozoa","Ciliophora","Cryptophyta","Foraminifera","Haptophyta","Myzozoa","Ochrophyta","Oomycota","Radiozoa")), ]
+Plantae <- sampled_sites4[(sampled_sites4$phylum %in% c("Bryophyta","Charophyta","Chlorophyta","Prasinodermatophyta","Rhodophyta","Tracheophyta")), ]
 
 # Chordata
 species_count_per_class_within_chordata <- sampled_sites4 %>%
@@ -1112,10 +1112,10 @@ ggplot(combined_species_counts, aes(x = site, y = STLspp)) +
 setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
 fishes <- read.csv("fishes.csv", stringsAsFactors=T)
 
-length(unique(fishes$species))
+length(unique(fishes$species)) # 7109 spp
 library(rfishbase)
 
-fish_species <- unique(fishes$species) # 7109 spp
+fish_species <- unique(fishes$species)
 
 # Retrieve trait info from FishBase and check which traits have info for more than 50 % of the spp
 
@@ -1195,7 +1195,7 @@ dist_matrix <- gowdis(traits_clean2)
 # Perform PCoA on the distance matrix
 pcoa_result <- pcoa(dist_matrix)
 eigenvalues <- pcoa_result$values$Eigenvalues
-variance_explained <- eigenvalues / sum(eigenvalues2)
+variance_explained <- eigenvalues / sum(eigenvalues)
 sum(variance_explained[1:4]) # 0.93
 eigenvectors <- pcoa_result$vectors[, 1:4] # get the 4 first eigenvectors
 
@@ -1257,12 +1257,14 @@ ordered_data$site <- factor(
     "Peninsula Valdés",
     "French Austral Lands and Seas"))
 
+library(tidyr)
 ordered_data_long <- ordered_data %>%
   pivot_longer(cols = c(fric, feve, fdiv),
                names_to = "Metric",
                values_to = "Value")
 
 my_theme=theme_bw()+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_blank(),axis.line.x = element_line(linewidth = 1),axis.line.y = element_line(linewidth = 1),axis.title = element_text(size = 12),axis.text = element_text(size = 12))
+library(forcats)
 ggplot(ordered_data_long, aes(x = fct_rev(site), y = Value, fill = Metric)) +
   geom_bar(stat = "identity", position = "dodge", width = 0.7) +
   labs(x = "Site", y = "Functional diversity") +
@@ -1272,6 +1274,25 @@ ggplot(ordered_data_long, aes(x = fct_rev(site), y = Value, fill = Metric)) +
   my_theme +
   coord_flip()
 
+# alternative to visualize fric and feve
+
+my_theme=theme_bw()+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.border = element_blank(),axis.line.x = element_line(linewidth = 1),axis.line.y = element_line(linewidth = 1),axis.title = element_text(size = 12),axis.text = element_text(size = 12))
+ggplot(ordered_data, aes(x = fct_rev(site), y = fric)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  labs(x = "Site", y = "Functional richness") +
+  scale_y_continuous(
+    breaks = seq(0, 200, by = 50),
+    labels = seq(0, 200, by = 50)) +
+  my_theme +
+  coord_flip()
+ggplot(ordered_data, aes(x = fct_rev(site), y = feve)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  labs(x = "Site", y = "Functional eveness") +
+  scale_y_continuous(
+    breaks = seq(0, 1, by = .2),
+    labels = seq(0, 1, by = .2)) +
+  my_theme +
+  coord_flip()
 # we need to scale the variables to visualize them because fric is in a much larger scale
 
 library(caret)
