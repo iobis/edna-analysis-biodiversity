@@ -324,7 +324,7 @@ write.csv(sampled_sites4, file = "sampled_sites4.csv", row.names = F)
 ### Species Richness
 ### ----------------------------------
 
-setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
+setwd("C:/Users/ana/OneDrive/Desktop/CCMAR/eDNA")
 sampled_sites4 <- read.csv("sampled_sites4.csv", stringsAsFactors=T)
 
 # order the sites latitudinally
@@ -405,6 +405,7 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = group
   scale_fill_manual(values = my_colors) +
   my_theme + ggtitle("a) All")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_1a (1200x500)
+write.csv(species_counts, file= "Output_data/1a.csv", row.names= F)
 
 #OBIS/GBIF
 subset <- subset(sampled_sites4, (source_obis == TRUE | source_gbif == TRUE))
@@ -422,6 +423,7 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = group
   scale_fill_manual(values = my_colors) +
   my_theme + ggtitle("b) OBIS/GBIF")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_1b (1200x500)
+write.csv(species_counts, file= "Output_data/1b.csv", row.names= F)
 
 #eDNA
 subset <- subset(sampled_sites4, (source_dna == TRUE))
@@ -439,6 +441,7 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = group
   scale_fill_manual(values = my_colors) +
   my_theme + ggtitle("c) eDNA")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_1c (1200x500)
+write.csv(species_counts, file= "Output_data/1c.csv", row.names= F)
 
 #unique eDNA
 subset <- subset(sampled_sites4, (source_dna == TRUE & source_obis == FALSE & source_gbif == FALSE))
@@ -456,12 +459,13 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = group
   scale_fill_manual(values = my_colors) +
   my_theme + ggtitle("d) Unique eDNA")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_1d (1200x500)
+write.csv(species_counts, file= "Output_data/1d.csv", row.names= F)
 
 ### ---
 
 # Repeat for fishes
 
-setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
+setwd("C:/Users/ana/OneDrive/Desktop/CCMAR/eDNA")
 fishes <- read.csv("fishes.csv", stringsAsFactors=T)
 
 # order the sites latitudinally
@@ -512,14 +516,6 @@ fishes$site <- factor(
     "Peninsula Valdés",
     "French Austral Lands and Seas"))
 
-# order classes
-ordered_sites <- c("Teleostei","Chondrostei","Cladistii","Coelacanthi","Elasmobranchii","Holocephali","Holostei","Mixini","Petromyzonti")
-
-sampled_sites4$group <- factor(
-  sampled_sites4$group,
-  levels = ordered_sites,
-  labels = c("Teleostei","Chondrostei","Cladistii","Coelacanthi","Elasmobranchii","Holocephali","Holostei","Mixini","Petromyzonti"))
-
 # all
 library(dplyr)
 library(ggplot2)
@@ -541,6 +537,7 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = class
     labels = seq(0, 3000, by = 500)) + 
   scale_fill_manual(values = my_colors) + my_theme + ggtitle("a) All")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_2a (1200x500)
+write.csv(species_counts, file= "Output_data/2a.csv", row.names= F)
 
 #OBIS/GBIF
 subset <- subset(fishes, (source_obis == TRUE | source_gbif == TRUE))
@@ -557,6 +554,7 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = class
     labels = seq(0, 3000, by = 500)) +
   scale_fill_manual(values = my_colors) + my_theme + ggtitle("b) OBIS/GBIF")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_2b (1200x500)
+write.csv(species_counts, file= "Output_data/2b.csv", row.names= F)
 
 #eDNA
 subset <- subset(fishes, (source_dna == TRUE))
@@ -575,6 +573,7 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = class
     labels = seq(0, 1000, by = 200)) +
   scale_fill_manual(values = my_colors) + my_theme + ggtitle("c) eDNA")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_2c (1200x500)
+write.csv(species_counts, file= "Output_data/2c.csv", row.names= F)
 
 #unique eDNA
 subset <- subset(fishes, (source_dna == TRUE & source_obis == FALSE & source_gbif == FALSE))
@@ -593,13 +592,14 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = class
     labels = seq(0, 200, by = 25)) +
   scale_fill_manual(values = my_colors) + my_theme + ggtitle("d) Unique eDNA")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_2d (1200x500)
+write.csv(species_counts, file= "Output_data/2d.csv", row.names= F)
 
 ### ----------------------------------
 
 ### Threatened species
 ### ----------------------------------
 
-setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
+setwd("C:/Users/ana/OneDrive/Desktop/CCMAR/eDNA")
 sampled_sites4 <- read.csv("sampled_sites4.csv", stringsAsFactors=T)
 
 # order the sites latitudinally
@@ -681,6 +681,7 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redli
   scale_fill_manual(values = my_colors) +
   my_theme + ggtitle("a) All")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_3a (1200x500)
+write.csv(species_counts, file= "Output_data/3a.csv", row.names= F)
 
 #OBIS/GBIF
 subset <- subset(subsample, (source_obis == TRUE | source_gbif == TRUE))
@@ -698,6 +699,7 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redli
   scale_fill_manual(values = my_colors) +
   my_theme + ggtitle("b) OBIS/GBIF")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_3b (1200x500)
+write.csv(species_counts, file= "Output_data/3b.csv", row.names= F)
 
 #eDNA
 subset <- subset(subsample, (source_dna == TRUE))
@@ -715,6 +717,7 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redli
   scale_fill_manual(values = my_colors) +
   my_theme + ggtitle("c) eDNA")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_3c (1200x500)
+write.csv(species_counts, file= "Output_data/3c.csv", row.names= F)
 
 #unique eDNA
 subset <- subset(subsample, (source_dna == TRUE & source_obis == FALSE & source_gbif == FALSE))
@@ -732,12 +735,13 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redli
   scale_fill_manual(values = my_colors) +
   my_theme + ggtitle("d) Unique eDNA")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_3d (1200x500)
+write.csv(species_counts, file= "Output_data/3d.csv", row.names= F)
 
 ### ---
 
 # Repeat for fishes
 
-setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
+setwd("C:/Users/ana/OneDrive/Desktop/CCMAR/eDNA")
 fishes <- read.csv("fishes.csv", stringsAsFactors=T)
 
 # order the sites latitudinally
@@ -815,6 +819,7 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redli
   scale_fill_manual(values = my_colors) +
   my_theme + ggtitle("a) All")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_4a (1200x500)
+write.csv(species_counts, file= "Output_data/4a.csv", row.names= F)
 
 #OBIS/GBIF
 subset <- subset(subsample, (source_obis == TRUE | source_gbif == TRUE))
@@ -832,6 +837,7 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redli
   scale_fill_manual(values = my_colors) +
   my_theme + ggtitle("b) OBIS/GBIF")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_4b (1200x500)
+write.csv(species_counts, file= "Output_data/4b.csv", row.names= F)
 
 #eDNA
 subset <- subset(subsample, (source_dna == TRUE))
@@ -849,6 +855,7 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redli
   scale_fill_manual(values = my_colors) +
   my_theme + ggtitle("c) eDNA")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_4c (1200x500)
+write.csv(species_counts, file= "Output_data/4c.csv", row.names= F)
 
 #unique eDNA
 subset <- subset(subsample, (source_dna == TRUE & source_obis == FALSE & source_gbif == FALSE))
@@ -866,13 +873,14 @@ ggplot(species_counts, aes(x = fct_rev(site), y = species_richness, fill = redli
   scale_fill_manual(values = my_colors) +
   my_theme + ggtitle("d) Unique eDNA")+ guides(fill = guide_legend(reverse = TRUE))
 # barplot_4d (1200x500)
+write.csv(species_counts, file= "Output_data/4d.csv", row.names= F)
 
 ### ----------------------------------
 
 ### Phylogenetic diversity
 ### ----------------------------------
 
-setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
+setwd("C:/Users/ana/OneDrive/Desktop/CCMAR/eDNA")
 sampled_sites4 <- read.csv("sampled_sites4.csv", stringsAsFactors=T)
 
 # order the sites latitudinally
@@ -945,6 +953,7 @@ ggplot(unique_counts, aes(x = fct_rev(site), y = STL)) +
     labels = seq(0, 12000, by = 2000)) +
   my_theme +coord_flip()
 # barplot_5a
+write.csv(unique_counts, file= "Output_data/5a.csv", row.names= F)
 
 # Calculate STL/spp score
 unique_counts <- mutate(unique_counts, STLspp = STL / species_count)
@@ -956,13 +965,14 @@ ggplot(unique_counts, aes(x = fct_rev(site), y = STLspp)) +
     breaks = seq(0, 10, by = 2),
     labels = seq(0, 10, by = 2)) +
   my_theme +coord_flip()
-# barplot_6a
+# barplot_5c
+write.csv(unique_counts, file= "Output_data/5c.csv", row.names= F)
 
 ### ---
 
 # Repeat for fishes
 
-setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
+setwd("C:/Users/ana/OneDrive/Desktop/CCMAR/eDNA")
 fishes <- read.csv("fishes.csv", stringsAsFactors=T)
 
 # order the sites latitudinally
@@ -1035,6 +1045,7 @@ ggplot(unique_counts, aes(x = fct_rev(site), y = STL)) +
     labels = seq(0, 3000, by = 1000)) +
   my_theme +coord_flip()
 # barplot_5b
+write.csv(unique_counts, file= "Output_data/5b.csv", row.names= F)
 
 # Calculate STL/spp score
 unique_counts <- mutate(unique_counts, STLspp = STL / species_count)
@@ -1046,7 +1057,8 @@ ggplot(unique_counts, aes(x = fct_rev(site), y = STLspp)) +
     breaks = seq(0, 10, by = 2),
     labels = seq(0, 10, by = 2)) +
   my_theme +coord_flip()
-# barplot_6b
+# barplot_5d
+write.csv(unique_counts, file= "Output_data/5d.csv", row.names= F)
 
 ####
 
@@ -1109,7 +1121,7 @@ ggplot(combined_species_counts, aes(x = site, y = STLspp)) +
 ### Functional diversity
 ### ----------------------------------
 
-setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
+setwd("C:/Users/ana/OneDrive/Desktop/CCMAR/eDNA")
 fishes <- read.csv("fishes.csv", stringsAsFactors=T)
 
 length(unique(fishes$species)) # 7109 spp
@@ -1143,7 +1155,7 @@ selected_columns <- names(non_na_counts[non_na_counts >= 3555])
 
 # get the site x spp presence-absence matrix
 
-setwd("C:/Users/anavc/OneDrive/Desktop/CCMAR/eDNA")
+setwd("C:/Users/ana/OneDrive/Desktop/CCMAR/eDNA")
 fishes <- read.csv("fishes.csv", stringsAsFactors=T)
 
 unique_species <- unique(fishes$species)
@@ -1204,6 +1216,10 @@ result <- dbFD(x=eigenvectors, a=presence_absence_matrix_clean2)
 fric<-as.data.frame(result$FRic)
 feve<-as.data.frame(result$FEve)
 fdiv<-as.data.frame(result$FDiv)
+
+write.csv(fric, file= "Output_data/6_fric.csv")
+write.csv(feve, file= "Output_data/6_feve.csv")
+write.csv(fdiv, file= "Output_data/6_fdiv.csv")
 
 # plot
 # order the sites latitudinally
