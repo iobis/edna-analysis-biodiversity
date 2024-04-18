@@ -66,9 +66,7 @@ shape_df <- data.frame(family = shape_families, shape = paste0("fish_tree/shapes
 
 n_colors <- length(order_families)
 
-ggtree(family_tree, aes(color = group), layout = "circular") +
-  # geom_fruit(data = family_stats, aes(x = gbif_obis, y = family, fill = group), geom = geom_bar, stat = "identity") +
-  # geom_fruit(data = family_stats, aes(x = edna, y = family, fill = group), geom = geom_bar, stat = "identity") +
+ggtree(family_tree, aes(color = group), layout = "fan") +
   scale_fill_manual(values = c(viridis::viridis_pal(option = "A")(n_colors))) +
   scale_color_manual(values = c("#eeeeee", viridis::viridis_pal(option = "A")(n_colors))) +
   new_scale_fill() +
