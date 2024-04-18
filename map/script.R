@@ -31,16 +31,24 @@ temp <- terra::rast("map/thetao_baseline_2000_2019_depthsurf_f740_e681_cf8f_U171
 plot(temp$thetao_mean)
 
 # plot
+# TODO: try to merge alpha and color scales
 
 ggplot() +
   geom_spatraster(data = temp$thetao_mean, aes(alpha = after_stat(value))) +
-  scale_fill_viridis_c(na.value = "#ffffff", option = "magma") +
+  scale_fill_viridis_c(name = "Ocean surface temperature (°C)", na.value = "#ffffff", option = "magma") +
+  scale_alpha_continuous(guide = "legend") +
   geom_sf(data = world, color = NA, fill = "#ffffff") +
   geom_sf(data = sites, size = 3) +
-  # geom_text_repel(data = sites, aes(x = area_longitude, y = area_latitude, label = id)) +
   geom_label_repel(data = sites, aes(x = area_longitude, y = area_latitude, label = stringr::str_wrap(parent_area_name, 30)), force = 20, force_pull = 0, size = 3) +
   theme_void() +
-  theme(legend.position = "none") +
-  coord_sf() # crs = "+proj=robin"
+  theme(
+    legend.position = "bottom",
+    legend.key.width = unit(2, "cm"),
+    legend.key.height = unit(0.2, "cm")
+  ) +
+  coord_sf() +
+  guides(
+    fill = guide_colourbar(name = "temp", title.position = "top", title.hjust = 0.5)
+  )
 
 ggsave("map/map.png", width = 14, height = 7, dpi = 300, bg = "white")
