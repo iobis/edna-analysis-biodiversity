@@ -27,16 +27,8 @@ world <- ne_countries(scale = "medium", returnclass = "sf")
 
 # temperature layer
 
-time = c("2001-01-01T00:00:00Z", "2010-01-01T00:00:00Z")
-latitude = c(-89.975, 89.975)
-longitude = c(-179.975, 179.975)
-constraints = list(time, latitude, longitude)
-names(constraints) = c("time", "latitude", "longitude")
-layers <- download_layers("thetao_baseline_2000_2019_depthmin", constraints = constraints)
-
-temp <- terra::rast("map/thetao_baseline_2000_2019_depthmin_f740_e681_cf8f_U1713440301657.nc")
+temp <- terra::rast("map/thetao_baseline_2000_2019_depthsurf_f740_e681_cf8f_U1713443834620.nc")
 plot(temp$thetao_mean)
-
 
 # plot
 
