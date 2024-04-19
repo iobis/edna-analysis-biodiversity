@@ -67,6 +67,7 @@ shape_df <- data.frame(family = shape_families, shape = paste0("fish_tree/shapes
 n_colors <- length(order_families)
 
 ggtree(family_tree, aes(color = group), layout = "circular") +
+  xlim(-200, NA) +
   # geom_fruit(data = family_stats, aes(x = gbif_obis, y = family, fill = group), geom = geom_bar, stat = "identity") +
   # geom_fruit(data = family_stats, aes(x = edna, y = family, fill = group), geom = geom_bar, stat = "identity") +
   scale_fill_manual(values = c(viridis::viridis_pal(option = "A")(n_colors))) +
@@ -76,7 +77,7 @@ ggtree(family_tree, aes(color = group), layout = "circular") +
   geom_fruit(data = family_stats, aes(y = family, fill = edna, alpha = edna), width = 20, geom = geom_tile, offset = 0.08) +
   scale_fill_carto_c(palette = "TealGrn", trans = "log10") +
   geom_tiplab(size = 1.9, offset = 65, color = "black") +
-  geom_fruit(data = shape_df, aes(image = shape, y = family), geom = geom_image, offset = 0.35, size = 0.03) +
+  geom_fruit(data = shape_df, aes(image = shape, y = family), geom = geom_image, offset = 0.45, size = 0.03) +
   theme(legend.position = "none", plot.margin = unit(c(-15, -15, -15, -15), "mm"))
 
 ggsave("fish_tree/tree.png", height = 12, width = 12, dpi = 300)
